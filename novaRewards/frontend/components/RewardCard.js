@@ -1,5 +1,8 @@
 'use client';
 
+import { useState } from 'react';
+import LoadingSpinner from './LoadingSpinner';
+
 /**
  * Individual reward card component.
  * Displays reward image, name, point cost, stock status, and redeem button.
@@ -10,19 +13,29 @@ export default function RewardCard({
   onRedeem,
   isLoading,
 }) {
-  const canAfford = userPoints >= reward.cost;
+  const [imageLoaded, setImageLoaded] = useState(false);
+
+  const cost = reward.pointCost ?? reward.cost ?? 0;
+  const imageUrl = reward.image ?? reward.image_url;
+  const canAfford = userPoints >= cost;
   const inStock = reward.stock > 0;
   const isDisabled = !canAfford || !inStock || isLoading;
 
   return (
     <div className="reward-card">
       <div className="reward-image-container">
-        {reward.image_url ? (
-          <img
-            src={reward.image_url}
-            alt={reward.name}
-            className="reward-image"
-          />
+        {imageUrl ? (
+          <>
+            {!imageLoaded && (
+              <div className="reward-image-placeholder shimmer" aria-hidden="true" />
+            )}
+            <img
+              src={imageUrl}
+              alt={reward.name}
+              className={`reward-image ${imageLoaded ? 'is-visible' : 'is-hidden'}`}
+              onLoad={() => setImageLoaded(true)}
+            />
+          </>
         ) : (
           <div className="reward-image-placeholder">No Image</div>
         )}
@@ -31,7 +44,7 @@ export default function RewardCard({
 
       <div className="reward-content">
         <h3 className="reward-name">{reward.name}</h3>
-        
+
         {reward.description && (
           <p className="reward-description">{reward.description}</p>
         )}
@@ -39,9 +52,9 @@ export default function RewardCard({
         <div className="reward-meta">
           <div className="reward-cost">
             <span className="reward-cost-label">Cost:</span>
-            <span className="reward-cost-value">{reward.cost} pts</span>
+            <span className="reward-cost-value">{cost} pts</span>
           </div>
-          
+
           {reward.stock !== null && (
             <div className="reward-stock">
               <span className="reward-stock-label">Stock:</span>
@@ -54,7 +67,7 @@ export default function RewardCard({
 
         {!canAfford && inStock && (
           <p className="reward-error">
-            You need {reward.cost - userPoints} more points
+            You need {cost - userPoints} more points
           </p>
         )}
       </div>
@@ -64,8 +77,14 @@ export default function RewardCard({
         onClick={() => onRedeem(reward)}
         disabled={isDisabled}
         aria-label={`Redeem ${reward.name}`}
+        aria-busy={isLoading}
       >
-        {isLoading ? 'Processing...' : 'Redeem'}
+        {isLoading ? (
+          <span style={{ display: 'inline-flex', gap: '0.4rem', alignItems: 'center' }}>
+            <LoadingSpinner label="Processing redemption" size="sm" inline />
+            Processing...
+          </span>
+        ) : 'Redeem'}
       </button>
     </div>
   );
